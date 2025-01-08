@@ -1,0 +1,6 @@
+poetry init
+poetry add fastapi uvicorn
+poetry add python-socketio
+
+<!-- https://medium.com/@parth116.rejoice/socket-io-with-python-fast-apis-1a1956b3989a -->
+
