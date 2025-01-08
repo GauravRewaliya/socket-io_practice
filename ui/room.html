@@ -8,9 +8,7 @@
         body {
             font-family: Arial, sans-serif;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            flex-direction: row;
             height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
@@ -34,31 +32,75 @@
             width: 80%;
             padding: 10px;
         }
-        button {
+        #notification-panel {
+            width: 30%;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+        #notification-panel h3 {
+            margin: 0 0 20px;
+        }
+        .notification {
             padding: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .bell-icon {
+            font-size: 24px;
             cursor: pointer;
+            position: relative;
+        }
+        .bell-icon .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            border-radius: 50%;
+            padding: 5px;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
-    <div id="messages"></div>
-    <input type="text" id="messageInput" class="send-message" placeholder="Enter message...">
-    <button onclick="sendMessage()">Send Message</button>
+    <!-- Room Messages Section -->
+    <div id="messages-panel">
+        <div id="messages"></div>
+        <input type="text" id="messageInput" class="send-message" placeholder="Enter message...">
+        <button onclick="sendMessage()">Send Message</button>
+    </div>
+    <!-- Notification Panel -->
+    <div id="notification-panel">
+        <div>
+            <span class="bell-icon" onclick="toggleNotifications()">
+                🔔 <span class="badge" id="notification-badge" style="display: none;">0</span>
+            </span>
+        </div>
+        <h3>Notifications</h3>
+        <div id="notifications"></div>
+    </div>
 
     <!-- <script src="/static/socket.io.js"></script> -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         const roomId = window.location.pathname.split("/").pop();
-        const socket = io("/room");
-
+        const roomSocket = io("/room");
+        const notificationSocket = io("/notification");
         const messagesDiv = document.getElementById("messages");
+        const notificationsDiv = document.getElementById("notifications");
+        const notificationBadge = document.getElementById("notification-badge");
 
-        socket.on("connect", () => {
+        let notificationCount = 0;
+
+        // Room Socket Events
+        roomSocket.on("connect", () => {
             console.log(`Connected to Room ${roomId}`);
-            socket.emit("join_room", { room_id: roomId });
+            roomSocket.emit("join_room", { room_id: roomId });
         });
 
-        socket.on("message", (data) => {
+        roomSocket.on("message", (data) => {
             const roomMessages = data.messages || [];
             messagesDiv.innerHTML = "";
             roomMessages.forEach((msg, index) => {
@@ -75,13 +117,35 @@
         function sendMessage() {
             const message = document.getElementById("messageInput").value;
             if (message) {
-                socket.emit("message", { room_id: roomId, message });
+                roomSocket.emit("message", { room_id: roomId, message });
                 document.getElementById("messageInput").value = "";
             }
         }
 
         function deleteMessage(index) {
-            socket.emit("delete_message", { room_id: roomId, message_index: index });
+            roomSocket.emit("delete_message", { room_id: roomId, message_index: index });
+        }
+
+        // Notification Socket Events
+        notificationSocket.on("connect", () => {
+            console.log("Connected to Notifications");
+            // notificationSocket.emit("register", { user_id: "current_user" }); // Replace with the actual user ID
+        });
+
+        notificationSocket.on("notification", (data) => {
+            notificationCount++;
+            notificationBadge.textContent = notificationCount;
+            notificationBadge.style.display = "block";
+
+            const notificationDiv = document.createElement("div");
+            notificationDiv.classList.add("notification");
+            notificationDiv.textContent = data.message;
+            notificationsDiv.prepend(notificationDiv);
+        });
+
+        function toggleNotifications() {
+            notificationCount = 0;
+            notificationBadge.style.display = "none";
         }
     </script>
 </body>
