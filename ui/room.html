@@ -49,17 +49,16 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         const roomId = window.location.pathname.split("/").pop();
-        const socket = io(`/room`, { query: `room_id=${roomId}` });
-        //const socket = io(`/room/${roomId}`); xx
+        const socket = io("/room");
 
         const messagesDiv = document.getElementById("messages");
 
         socket.on("connect", () => {
             console.log(`Connected to Room ${roomId}`);
+            socket.emit("join_room", { room_id: roomId });
         });
 
         socket.on("message", (data) => {
-            // debugger;
             const roomMessages = data.messages || [];
             messagesDiv.innerHTML = "";
             roomMessages.forEach((msg, index) => {
