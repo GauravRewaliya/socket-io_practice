@@ -29,7 +29,7 @@ async def disconnect(sid):
     print("--<<<< Client Disconnected from This id :"+" "+str(sid))
     # @sio.on("message")
 
-# @sio.on("message")
-# async def message(sid, data):
-#     print(data)
-#     await sio.emit("message", data, room=sid)
+@sio.on("message") ## recive data from client
+async def message(sid, data):
+    print(f"--{sid}->>>>>"+data)
+    await sio.emit("message", data, room=sid) ## send to all user's

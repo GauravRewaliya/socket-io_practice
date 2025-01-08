@@ -18,6 +18,10 @@
   socket.on("message", (data) => {
     console.log(data);
   });
+  socket.on('send_msg',(data)=>{
+    console.log(data);
+  } );
+  // socket.emit("message","hii") , 1st action , 2nd stuff
 </script>
 </body>
 </html>
