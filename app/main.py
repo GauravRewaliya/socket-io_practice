@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from socketio import AsyncServer
 from socketio.asgi import ASGIApp
 from fastapi.responses import HTMLResponse
-from app.room import sio
+from app.socket_logics import sio
 app = FastAPI()
 
 app.mount("/socket.io", ASGIApp(sio))
