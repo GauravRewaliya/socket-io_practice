@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.IO Tester</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 20%;
+      background: #f4f4f4;
+      padding: 10px;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+    }
+    .content {
+      width: 80%;
+      padding: 10px;
+    }
+    .log {
+      border: 1px solid #ddd;
+      padding: 5px;
+      height: 300px;
+      overflow-y: auto;
+      background: #f9f9f9;
+    }
+    .log .message {
+      margin: 5px 0;
+      padding: 5px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .form {
+      margin: 10px 0;
+    }
+    .form input,
+    .form select,
+    .form button {
+      margin: 5px;
+      padding: 5px;
+    }
+  </style>
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h3>Available Namespaces</h3>
+      <ul id="namespaces">
+        <!-- Dynamic namespaces list -->
+      </ul>
+    </div>
+    <div class="content">
+      <h3>Socket.IO Tester</h3>
+      <div class="log" id="log"></div>
+      <form class="form" onsubmit="sendMessage(event)">
+        <select id="namespace">
+          <option value="">Select Namespace</option>
+        </select>
+        <select id="action">
+          <option value="">Select Action</option>
+        </select>
+        <div id="params"></div>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const socket = io("http://localhost:8000"); // Update the URL to your server
+    const log = document.getElementById("log");
+    const namespacesList = document.getElementById("namespaces");
+    const namespaceSelect = document.getElementById("namespace");
+    const actionSelect = document.getElementById("action");
+    const paramsContainer = document.getElementById("params");
+
+    // Fetch available namespaces and actions
+    fetch("/socket_docs/api")
+      .then(response => response.json())
+      .then(data => {
+        data.forEach(namespace => {
+          // Sidebar
+          const li = document.createElement("li");
+          li.textContent = namespace.namespace;
+          namespacesList.appendChild(li);
+
+          // Namespace Dropdown
+          const option = document.createElement("option");
+          option.value = namespace.namespace;
+          option.textContent = namespace.namespace;
+          namespaceSelect.appendChild(option);
+        });
+
+        // Namespace Change Event
+        namespaceSelect.addEventListener("change", () => {
+          const selectedNamespace = namespaceSelect.value;
+          const namespaceData = data.find(ns => ns.namespace === selectedNamespace);
+
+          // Clear previous actions and parameters
+          actionSelect.innerHTML = '<option value="">Select Action</option>';
+          paramsContainer.innerHTML = '';
+
+          if (namespaceData) {
+            namespaceData.actions.forEach(action => {
+              const actionOption = document.createElement("option");
+              actionOption.value = action.name;
+              actionOption.textContent = action.name;
+              actionSelect.appendChild(actionOption);
+            });
+          }
+        });
+
+        // Action Change Event
+        actionSelect.addEventListener("change", () => {
+          const selectedNamespace = namespaceSelect.value;
+          const selectedAction = actionSelect.value;
+          const namespaceData = data.find(ns => ns.namespace === selectedNamespace);
+          const actionData = namespaceData.actions.find(a => a.name === selectedAction);
+
+          // Clear previous parameters
+          paramsContainer.innerHTML = '';
+
+          if (actionData) {
+            actionData.params.forEach(param => {
+              const input = document.createElement("input");
+              input.placeholder = `${param.name} (${param.type})`;
+              input.dataset.paramName = param.name;
+              paramsContainer.appendChild(input);
+            });
+          }
+        });
+      });
+
+    // Log helper
+    function logMessage(type, data) {
+      const div = document.createElement("div");
+      div.className = "message";
+      div.innerHTML = `<strong>${type}:</strong> ${JSON.stringify(data)}`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight; // Auto-scroll to the bottom
+    }
+
+    // Listen to messages
+    socket.on("message", data => logMessage("Message Received", data));
+
+    // Send a message
+    function sendMessage(event) {
+      event.preventDefault();
+      const namespace = namespaceSelect.value;
+      const action = actionSelect.value;
+
+      if (!namespace || !action) {
+        alert("Please select a namespace and action.");
+        return;
+      }
+
+      const inputs = paramsContainer.querySelectorAll("input");
+      const params = {};
+
+      inputs.forEach(input => {
+        params[input.dataset.paramName] = input.value;
+      });
+
+      logMessage("Action Sent", { namespace, action, params });
+      socket.emit(action, params);
+    }
+  </script>
+</body>
+</html>
